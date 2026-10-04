@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>math-camp</title>
+<meta name="description" content="Листове със задачи за смятане и решения стъпка по стъпка.">
+<link rel="icon" href="icons/icon-128.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-stk" id="brandStk"></div>
+      <div class="wordmark"><span>math-camp</span></div>
+    </div>
+    <nav class="nav" aria-label="Раздели">
+      <button type="button" data-nav="gen" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+        Нов лист
+      </button>
+      <button type="button" data-nav="journal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h3M4 12h3M4 18h3"/><path d="M10 6h10M10 12h10M10 18h10"/></svg>
+        История
+        <span class="count" id="pendingCount" hidden></span>
+      </button>
+      <button type="button" data-nav="progress">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        Напредък
+      </button>
+    </nav>
+    <div class="side-foot">
+      <label for="seed">Лист №</label>
+      <div class="code-row">
+        <input id="seed" maxlength="8" autocomplete="off" spellcheck="false" aria-describedby="seedHint">
+      </div>
+      <small class="muted" id="seedHint">Един и същ номер с едни и същи настройки дава същия лист.</small>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- generator -->
+    <section data-view="gen" class="viewbox">
+      <div class="view-head">
+        <div>
+          <h1>Нов лист за смятане</h1>
+          <p>Генерирай, докато листът ти хареса, и го избери за печат. Получаваш лист със задачи и отделен лист с решенията стъпка по стъпка.</p>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn yellow" id="newSheet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>
+            Генерирай отново
+          </button>
+          <button type="button" class="btn ink" id="printBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 9V3h10v6M7 18H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7" rx="1"/></svg>
+            <span class="lbl">Избери и печатай</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="gen">
+        <div class="config" id="config"></div>
+        <section class="preview" aria-label="Преглед на листовете">
+          <div class="pv-bar">
+            <div class="seg" role="group" aria-label="Какво да се покаже и отпечата">
+              <button type="button" data-view-sel="both" aria-pressed="true">Двата листа</button>
+              <button type="button" data-view-sel="tasks" aria-pressed="false">Задачи</button>
+              <button type="button" data-view-sel="answers" aria-pressed="false">Решения</button>
+            </div>
+            <div class="pv-meta"><span class="pill good" id="selChip" hidden>✓ Избран · в историята</span><span class="pv-sum" id="summary"></span></div>
+          </div>
+          <div class="sheets" id="sheets"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- journal -->
+    <section data-view="journal" class="viewbox" hidden>
+      <div class="view-head">
+        <div>
+          <h1>История</h1>
+          <p>Тук са избраните за печат листове. След решаването отбележи грешните задачи. Според резултата следващият лист става малко по-труден или по-лесен.</p>
+        </div>
+      </div>
+      <div class="list" id="journalList"></div>
+    </section>
+
+    <!-- progress -->
+    <section data-view="progress" class="viewbox" hidden>
+      <div class="view-head">
+        <div>
+          <h1>Напредък</h1>
+          <p>Обобщение по проверените листове. Историята се пази само в този браузър (IndexedDB).</p>
+        </div>
+      </div>
+      <div id="progressBody"></div>
+    </section>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
