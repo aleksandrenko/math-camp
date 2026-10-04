@@ -15,13 +15,16 @@ const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const PLACE = ['единици', 'десетици', 'стотици', 'хиляди', 'десетици хиляди', 'стотици хиляди', 'милиони', 'десетици милиони'];
 const PLACE_FROM = ['единиците', 'десетиците', 'стотиците', 'хилядите', 'десетиците хиляди', 'стотиците хиляди', 'милионите', 'десетиците милиони'];
 
-const TYPES = ['smart', 'add', 'sub', 'mul', 'div', 'mix'];
-const COLORS = { smart: '#8E6CC9', add: '#F4C430', sub: '#F07258', mul: '#6DBE94', div: '#1F5A6E', mix: '#24221E' };
-const CHROME_COLORS = { smart: 'var(--plum)', add: 'var(--yellow)', sub: 'var(--coral)', mul: 'var(--green)', div: 'var(--navy)', mix: 'var(--fg)' };
-const TYPE_NAME = { smart: 'Рационално смятане', add: 'Събиране', sub: 'Изваждане', mul: 'Умножение', div: 'Деление', mix: 'Ред на действията' };
-const TYPE_SYM = { smart: 'dot', add: 'plus', sub: 'minus', mul: 'times', div: 'divide', mix: 'equals' };
-const SMART_KINDS = ['group', 'distrib', 'chain', 'decomp', 'combo'];
-const SMART_KIND_NAME = { group: 'Групиране', distrib: 'Общ множител', chain: 'Деление на части', decomp: 'Разлагане', combo: 'Комбинирани' };
+const TYPES = ['smart', 'add', 'sub', 'mul', 'div', 'mix', 'word', 'logic', 'error'];
+const PROSE = new Set(['word', 'logic', 'error']);
+const COLORS = { word: '#3E9BB5', logic: '#C2577E', error: '#7C8A33', smart: '#8E6CC9', add: '#F4C430', sub: '#F07258', mul: '#6DBE94', div: '#1F5A6E', mix: '#24221E' };
+const CHROME_COLORS = { word: 'var(--sky)', logic: 'var(--rose)', error: 'var(--olive)', smart: 'var(--plum)', add: 'var(--yellow)', sub: 'var(--coral)', mul: 'var(--green)', div: 'var(--navy)', mix: 'var(--fg)' };
+const TYPE_NAME = { word: 'Текстови задачи', logic: 'Логически задачи', error: 'Открий грешката', smart: 'Рационално смятане', add: 'Събиране', sub: 'Изваждане', mul: 'Умножение', div: 'Деление', mix: 'Ред на действията' };
+const TYPE_SYM = { word: 'dot', logic: 'dot', error: 'dot', smart: 'dot', add: 'plus', sub: 'minus', mul: 'times', div: 'divide', mix: 'equals' };
+const SMART_KINDS = ['group', 'distrib', 'hidden', 'chain', 'decomp', 'combo'];
+const LOGIC_KINDS = ['seq', 'missing', 'compare', 'think'];
+const LOGIC_KIND_NAME = { seq: 'Редици', missing: 'Липсващо число', compare: 'Сравни', think: 'Намислено число' };
+const SMART_KIND_NAME = { group: 'Групиране', distrib: 'Общ множител', hidden: 'Скрит общ множител', chain: 'Деление на части', decomp: 'Разлагане', combo: 'Комбинирани' };
 const SMALL_PAIRS = [[2, 5], [5, 2], [4, 25], [25, 4], [20, 5], [5, 20], [50, 2], [2, 50]];
 const BIG_PAIRS = [[125, 8], [8, 125], [250, 4], [4, 250], [500, 2], [2, 500], [200, 5], [25, 40], [40, 25]];
 
@@ -46,6 +49,15 @@ const SKILLS = {
   'smart-chain': { type: 'smart', name: 'Последователно деление' },
   'smart-decomp': { type: 'smart', name: 'Деление чрез разлагане' },
   'smart-combo': { type: 'smart', name: 'Комбинирани изрази' },
+  'smart-hidden': { type: 'smart', name: 'Скрит общ множител' },
+  'word-1': { type: 'word', name: 'Текстови задачи с едно действие' },
+  'word-2': { type: 'word', name: 'Текстови задачи с две действия' },
+  'word-3': { type: 'word', name: 'Текстови задачи с три и повече действия' },
+  'logic-seq': { type: 'logic', name: 'Числови редици' },
+  'logic-missing': { type: 'logic', name: 'Липсващо число' },
+  'logic-compare': { type: 'logic', name: 'Сравняване на изрази' },
+  'logic-think': { type: 'logic', name: 'Намислено число' },
+  'error-find': { type: 'error', name: 'Откриване на грешка' },
 };
 
 /* ---------------- storage (try/catch: може да е недостъпно) ---------------- */
@@ -151,12 +163,15 @@ const levelWord = (from, to) => (to > from ? 'малко по-трудно' : to
 const BASE = applyLevel({
   title: 'Работен лист по математика', detail: 'short', symbols: 'x', lines: 30, gap: 1, order: 'grouped', names: true, check: true, noTrivial: true, focus: [],
   level: 5, levelCustom: false,
-  smart: { on: true, n: 8, kinds: { group: true, distrib: true, chain: true, decomp: true, combo: true } },
-  add: { on: true, n: 1 },
+  smart: { on: true, n: 5, kinds: { group: true, distrib: true, hidden: true, chain: true, decomp: true, combo: true } },
+  add: { on: false, n: 1 },
   sub: { on: true, n: 1, neg: false },
   mul: { on: true, n: 1 },
-  div: { on: true, n: 2, rem: false },
-  mix: { on: true, n: 2, allow: { '+': true, '−': true, '·': true, ':': true } },
+  div: { on: true, n: 1, rem: false },
+  word: { on: true, n: 2 },
+  logic: { on: true, n: 2, kinds: { seq: true, missing: true, compare: true, think: true } },
+  error: { on: true, n: 1 },
+  mix: { on: false, n: 1, allow: { '+': true, '−': true, '·': true, ':': true } },
 }, 5);
 
 function merge(target, patch) {
@@ -589,6 +604,7 @@ function partsDiv(a, b) {
 }
 const fmtNum = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 function fmtAns(p) {
+  if (p.answerText) return p.answerText;
   if (p.type === 'div' && p.rem) return `${fmtNum(p.value)}, ост. ${p.rem}`;
   return p.value < 0 ? '−' + fmtNum(-p.value) : fmtNum(p.value);
 }
@@ -599,6 +615,24 @@ function gridFromParts(expr, parts, ans) {
   const g = mkGrid(Math.max(...rows.map((x) => [...x].length)));
   rows.forEach((x, i) => putStr(addRow(g), 0, x, i === 0 ? {} : { a: true }));
   return g;
+}
+
+/* ---------------- малък изчислител на изрази (за проверка и „Открий грешката“) ---------------- */
+function evalExpr(str) {
+  const toks = String(str).replace(/\s+/g, '').match(/\d+|[+−·:()×÷*/-]/g) || [];
+  let i = 0;
+  const num = () => { const t = toks[i++]; if (t === '(') { const v = sum(); i++; return v; } return Number(t); };
+  const prod = () => {
+    let v = num();
+    while (['·', ':', '×', '÷', '*', '/'].includes(toks[i])) { const o = toks[i++]; const r = num(); v = ['·', '×', '*'].includes(o) ? v * r : v / r; }
+    return v;
+  };
+  const sum = () => {
+    let v = prod();
+    while (['+', '−', '-'].includes(toks[i])) { const o = toks[i++]; const r = prod(); v = o === '+' ? v + r : v - r; }
+    return v;
+  };
+  return sum();
 }
 
 /* ---------------- генериране ---------------- */
@@ -684,6 +718,156 @@ function generate(c, sd) {
       if (!s) return null;
       return { type: 'mix', key: 'mix' + s.expr, ...s };
     },
+    word() {
+      const pool = (typeof WORD_TEMPLATES === 'undefined' ? [] : WORD_TEMPLATES).filter((t) => c.level >= t.lv[0] && c.level <= t.lv[1]);
+      if (!pool.length) return null;
+      const t = pool[Math.floor(rng() * pool.length)];
+      const v = {};
+      for (const [key, [lo, hi]] of Object.entries(t.v)) v[key] = R(lo, hi);
+      Object.assign(v, t.d ? t.d(v) : {});
+      if (t.ok && !t.ok(v)) return null;
+      const st = t.s(v);
+      const value = st[st.length - 1][1];
+      if (!Number.isInteger(value) || value < 0) return null;
+      const unit = Array.isArray(t.u) ? (value === 1 ? t.u[0] : t.u[1]) : t.u;
+      const answer = t.a ? t.a(v) : `${fmtNum(value)}${unit ? '\u00a0' + unit : ''}`;
+      const text = t.t(v);
+      return {
+        type: 'word', key: 'w' + text, expr: text, task: text, value, answer, answerText: answer, prose: true,
+        chainText: st.map(([e, val, note]) => `${e} = ${fmtNum(val)}${note ? ` (${note})` : ''}`).join(';  '),
+        steps: st.map(([e, val, note], i) => ({ lead: `${i + 1}. ${note || 'смятаме'}`, txt: `${e} = ${val}` })),
+        check: '', tags: [`word-${Math.min(3, st.length)}`],
+      };
+    },
+    logic(k) {
+      const o = c.logic;
+      const kinds = LOGIC_KINDS.filter((x) => o.kinds[x]);
+      if (!kinds.length) return null;
+      const kind = kinds[k % kinds.length];
+      const L = c.level;
+      const base = { type: 'logic', kind, prose: true, check: '', tags: ['logic-' + kind] };
+      if (kind === 'seq') {
+        const rules = [];
+        const d = R(L < 4 ? 1 : 2, L < 4 ? 5 : L < 7 ? 15 : 50);
+        rules.push({ f: (x) => x + d, txt: `всяко следващо число е с ${d} по-голямо`, op: (x) => `${x} + ${d}`, start: R(1, 20 * L) });
+        if (L >= 3) rules.push({ f: (x) => x - d, txt: `всяко следващо число е с ${d} по-малко`, op: (x) => `${x} − ${d}`, start: d * 8 + R(1, 30 * L) });
+        if (L >= 4) { const q = L < 7 ? 2 : R(2, 3); rules.push({ f: (x) => x * q, txt: `всяко следващо число е ${q} пъти по-голямо`, op: (x) => `${x} · ${q}`, start: R(1, L < 7 ? 5 : 9) }); }
+        if (L >= 5) { const a = R(2, 9), b = R(2, 9); if (a !== b) rules.push({ alt: [a, b], txt: `прибавяме последователно ${a} и ${b}`, start: R(1, 30) }); }
+        if (L >= 5) rules.push({ grow: true, txt: 'прибавяме 1, после 2, после 3 и т.н. (всеки път с 1 повече)', start: R(1, 20) });
+        if (L >= 7) rules.push({ f: (x) => 2 * x + 1, txt: 'всяко следващо е два пъти по-голямо плюс 1', op: (x) => `2 · ${x} + 1`, start: R(1, 6) });
+        if (L >= 8) rules.push({ fib: true, txt: 'всяко число е сбор на двете преди него', start: R(1, 5) });
+        const r = rules[Math.floor(rng() * rules.length)];
+        const terms = [r.start];
+        const ops = [];
+        while (terms.length < 7) {
+          const x = terms[terms.length - 1], j = terms.length - 1;
+          let y, opTxt;
+          if (r.alt) { const a = r.alt[j % 2]; y = x + a; opTxt = `${x} + ${a}`; }
+          else if (r.grow) { y = x + j + 1; opTxt = `${x} + ${j + 1}`; }
+          else if (r.fib) { const w = terms.length > 1 ? terms[terms.length - 2] : r.start; y = x + w; opTxt = `${w} + ${x}`; }
+          else { y = r.f(x); opTxt = r.op(x); }
+          terms.push(y); ops.push(`${opTxt} = ${y}`);
+        }
+        if (terms.some((x) => x < 0 || x > 99999)) return null;
+        const task = `Продължи редицата: ${terms.slice(0, 5).join(', ')}, __, __`;
+        return { ...base, key: 'lq' + task, expr: task, task, value: terms[5], answer: `${terms[5]}, ${terms[6]}`, answerText: `${terms[5]}, ${terms[6]}`,
+          note: cap(r.txt), chainText: ops.slice(4).join(';  '), steps: [{ lead: 'Правило', txt: r.txt }, { lead: 'Следващите', txt: ops.slice(4).join('; ') }] };
+      }
+      if (kind === 'missing') {
+        const form = R(0, L < 3 ? 2 : 5);
+        let task, x, chain;
+        if (form <= 2) {
+          const a = R(c.add.min, c.add.max), b = R(c.add.min, c.add.max), s = a + b;
+          if (form === 0) { task = `${a} + __ = ${s}`; x = b; chain = `${s} − ${a} = ${b}`; }
+          else if (form === 1) { task = `__ − ${a} = ${b}`; x = s; chain = `${b} + ${a} = ${s}`; }
+          else { task = `${s} − __ = ${b}`; x = a; chain = `${s} − ${b} = ${a}`; }
+        } else {
+          const a = R(Math.max(2, c.mul.bMin), Math.max(2, c.mul.bMax)), b = R(Math.max(2, Math.min(c.mul.aMin, 99)), Math.max(2, Math.min(c.mul.aMax, 999))), pr = a * b;
+          if (form === 3) { task = `${a} · __ = ${pr}`; x = b; chain = `${pr} : ${a} = ${b}`; }
+          else if (form === 4) { task = `__ : ${a} = ${b}`; x = pr; chain = `${b} · ${a} = ${pr}`; }
+          else { task = `${pr} : __ = ${b}`; x = a; chain = `${pr} : ${b} = ${a}`; }
+        }
+        return { ...base, key: 'lm' + task, expr: task, task: `Кое число липсва? ${task}`, value: x, answer: String(x), answerText: fmtNum(x),
+          note: 'Използваме обратното действие', chainText: chain, steps: [{ lead: 'Обратното действие', txt: chain }] };
+      }
+      if (kind === 'compare') {
+        const a = R(Math.max(2, c.mul.bMin), Math.max(3, c.mul.bMax)), b = R(Math.max(2, Math.min(c.mul.aMin, 99)), Math.max(3, Math.min(c.mul.aMax, 999)));
+        const V = a * b;
+        const delta = rng() < 0.3 ? 0 : R(1, Math.max(2, Math.round(V * 0.04))) * (rng() < 0.5 ? -1 : 1);
+        const W = V + delta;
+        const p1 = R(Math.max(1, Math.round(W * 0.2)), Math.max(2, Math.round(W * 0.8)));
+        const p2 = W - p1;
+        if (p2 < 1) return null;
+        const left = `${a} · ${b}`, right = `${p1} + ${p2}`;
+        const sign = V > W ? '>' : V < W ? '<' : '=';
+        const task = `Сравни (>, < или =): ${left} __ ${right}`;
+        return { ...base, key: 'lc' + task, expr: task, task, value: 0, answer: sign, answerText: sign,
+          chainText: `${left} = ${V};  ${right} = ${W};  ${V} ${sign} ${W}`, steps: [{ lead: 'Лявата страна', txt: `${left} = ${V}` }, { lead: 'Дясната страна', txt: `${right} = ${W}` }, { lead: 'Сравняваме', txt: `${V} ${sign} ${W}` }] };
+      }
+      // think: намислено число
+      const nOps = L < 6 ? 2 : 3;
+      const x = R(2, L < 4 ? 10 : L < 7 ? 30 : 99);
+      let cur = x;
+      const fwd = [], verbs = [];
+      for (let j = 0; j < nOps; j++) {
+        const opk = j === 0 && rng() < 0.6 ? '·' : ['+', '−', '·', ':'][Math.floor(rng() * 4)];
+        if (opk === '·') { const kk = R(2, L < 6 ? 5 : 9); fwd.push(['·', kk]); verbs.push(`умножих го по ${kk}`); cur *= kk; }
+        else if (opk === '+') { const m = R(2, 10 * Math.max(1, L - 2)); fwd.push(['+', m]); verbs.push(`прибавих ${m}`); cur += m; }
+        else if (opk === '−') { const m = R(1, Math.max(1, cur - 1)); fwd.push(['−', m]); verbs.push(`извадих ${m}`); cur -= m; }
+        else { const ds = [2, 3, 4, 5].filter((dd) => cur % dd === 0); if (!ds.length) return null; const dd = ds[Math.floor(rng() * ds.length)]; fwd.push([':', dd]); verbs.push(`разделих го на ${dd}`); cur /= dd; }
+      }
+      if (cur < 0 || cur > 99999) return null;
+      const inv = { '·': ':', ':': '·', '+': '−', '−': '+' };
+      let back = cur;
+      const chainParts = [];
+      for (let j = fwd.length - 1; j >= 0; j--) {
+        const [opk, m] = fwd[j];
+        const io = inv[opk];
+        const nb = io === '·' ? back * m : io === ':' ? back / m : io === '+' ? back + m : back - m;
+        chainParts.push(`${back} ${io} ${m} = ${nb}`);
+        back = nb;
+      }
+      const task = `Намислих си число, ${verbs.join(', после ')} и получих ${cur}. Кое е намисленото число?`;
+      return { ...base, key: 'lt' + task, expr: task, task, value: x, answer: String(x), answerText: fmtNum(x),
+        note: 'Връщаме се назад с обратните действия', chainText: chainParts.join(';  '), steps: chainParts.map((t2, j) => ({ lead: `${j + 1}. назад`, txt: t2 })) };
+    },
+    error() {
+      const bases = ['smart', 'smart', 'mul', 'add', 'sub', 'mix'];
+      const b = bases[Math.floor(rng() * bases.length)];
+      const src = makers[b](Math.floor(rng() * 6));
+      if (!src || !src.parts || !src.parts.length || src.parts.some((x) => /ост|^−/.test(x)) || src.value < 10) return null;
+      const corrupt = (num) => {
+        const sN = String(num);
+        const opts = [num + 10, num - 10, num + 1, num - 1];
+        if (num >= 100) opts.push(num + 100, num - 100);
+        if (sN.length >= 2 && sN[sN.length - 1] !== sN[sN.length - 2]) opts.push(Number(sN.slice(0, -2) + sN[sN.length - 1] + sN[sN.length - 2]));
+        const ok = opts.filter((y) => y >= 0 && y !== num);
+        return ok[Math.floor(rng() * ok.length)];
+      };
+      const parts = src.parts;
+      const at = Math.floor(rng() * (parts.length + 1));
+      let shown, wrong, where;
+      if (at === parts.length) {
+        wrong = corrupt(src.value);
+        shown = parts;
+        where = `последното равенство: ${parts[parts.length - 1]} = ${fmtNum(src.value)}, а не ${fmtNum(wrong)}`;
+      } else {
+        const nums = [...parts[at].matchAll(/\d+/g)];
+        const pick = nums[Math.floor(rng() * nums.length)];
+        const bad = parts[at].slice(0, pick.index) + corrupt(Number(pick[0])) + parts[at].slice(pick.index + pick[0].length);
+        wrong = evalExpr(bad);
+        if (!Number.isInteger(wrong) || wrong < 0 || wrong === src.value) return null;
+        shown = [...parts.slice(0, at), bad];
+        where = `стъпка ${at + 1}: трябва ${parts[at]}, а не ${bad}`;
+      }
+      const chainShown = `${src.expr} = ${shown.join(' = ')} = ${fmtNum(wrong)}`;
+      return {
+        type: 'error', key: 'e' + chainShown, expr: chainShown, task: `Намери грешката и запиши верния отговор: ${chainShown}`, prose: true,
+        value: src.value, answer: String(src.value), answerText: fmtNum(src.value),
+        note: `Грешката е в ${where}`, parts: src.parts, check: '', tags: ['error-find'],
+        steps: [{ lead: 'Грешката', txt: where }, { lead: 'Вярно', txt: `${src.expr} = ${src.parts.join(' = ')} = ${src.value}` }],
+      };
+    },
     smart(k) {
       const o = c.smart;
       const kinds = SMART_KINDS.filter((x) => o.kinds[x]);
@@ -710,6 +894,16 @@ function generate(c, sd) {
         expr = `${a} · ${b} ${op} ${a} · ${d}`; value = a * T;
         parts = [`${a} · (${b} ${op} ${d})`, `${a} · ${T}`];
         steps = [{ lead: 'Общ множител', txt: `${a} е и в двете произведения → ${a} · (${b} ${op} ${d})` }, { lead: 'Скобите', txt: `${b} ${op} ${d} = ${T}` }, { lead: 'Умножаваме', txt: `${a} · ${T} = ${value}` }];
+      } else if (kind === 'hidden') {
+        // 2 · 7 · 23 + 46 · 8 + 46 · 5: първото произведение крие общия множител 46 = 2 · 23
+        const pf = R(2, 5), q = R(Math.max(6, o.xMin), Math.max(12, Math.min(o.xMax, 199)));
+        const X = pf * q;
+        const T = o.t100 && rng() < 0.4 ? 100 : rng() < 0.5 ? 10 : 20;
+        const m = R(1, T - 3), d = R(1, T - m - 2), e = T - m - d;
+        if (e < 1 || m === d || d === e) return null;
+        expr = `${pf} · ${m} · ${q} + ${X} · ${d} + ${X} · ${e}`; value = X * T;
+        parts = [`${m} · ${X} + ${X} · ${d} + ${X} · ${e}`, `${X} · (${m} + ${d} + ${e})`, `${X} · ${T}`];
+        steps = [{ lead: 'Търсим общ множител', txt: `${pf} · ${q} = ${X}, значи ${pf} · ${m} · ${q} = ${m} · ${X}` }, { lead: 'Изнасяме го', txt: `${X} · (${m} + ${d} + ${e})` }, { lead: 'Скобите', txt: `${m} + ${d} + ${e} = ${T}` }, { lead: 'Умножаваме', txt: `${X} · ${T} = ${value}` }];
       } else if (kind === 'chain') {
         const ds = Array.from({ length: o.depth }, () => R(2, Math.max(2, o.dMax)));
         const r = R(2, Math.max(2, o.rMax));
@@ -802,6 +996,9 @@ function sticker(kind, fill, size = 32, cls = '') {
 
 /* ---------------- конфигурационен панел ---------------- */
 const TYPE_FIELDS = {
+  word: [['note', 'Числата и сложността следват нивото на трудност.']],
+  logic: [['lkinds', 'Видове', 'kinds']],
+  error: [['note', 'Решение с една сгрешена стъпка: детето намира грешката и пише верния отговор.']],
   smart: [['range', 'Числото, с което се смята', 'xMin', 'xMax'], ['kinds', 'Видове', 'kinds']],
   add: [['range', 'Събираеми', 'min', 'max'], ['num', 'Брой събираеми', 'terms', 2, 4], ['check', 'Без преминаване през десетицата', 'noCarry']],
   sub: [['range', 'Умаляемо', 'aMin', 'aMax'], ['range', 'Умалител', 'bMin', 'bMax'], ['check', 'Без заемане', 'noCarry'], ['check', 'Може отрицателен резултат', 'neg']],
@@ -820,6 +1017,10 @@ function fieldHTML(type, f) {
       return `<div class="fld"><label class="lbl" for="${id(f[2])}">${f[1]}</label><input class="num sm" type="number" inputmode="numeric" min="${f[3]}" max="${f[4]}" id="${id(f[2])}" data-k="${type}.${f[2]}" value="${o[f[2]]}"></div>`;
     case 'check':
       return `<label class="chk"><input type="checkbox" id="${id(f[2])}" data-k="${type}.${f[2]}" ${o[f[2]] ? 'checked' : ''}> ${f[1]}</label>`;
+    case 'note':
+      return `<p class="fld-note">${f[1]}</p>`;
+    case 'lkinds':
+      return `<div class="fld kinds"><span class="lbl">${f[1]}</span><span class="ops wide">${LOGIC_KINDS.map((kd) => `<label><input type="checkbox" id="${id('k-' + kd)}" data-k="${type}.kinds.${kd}" ${o.kinds[kd] ? 'checked' : ''}><span>${LOGIC_KIND_NAME[kd]}</span></label>`).join('')}</span></div>`;
     case 'kinds':
       return `<div class="fld kinds"><span class="lbl">${f[1]}</span><span class="ops wide">${SMART_KINDS.map((kd) => `<label><input type="checkbox" id="${id('k-' + kd)}" data-k="${type}.kinds.${kd}" ${o.kinds[kd] ? 'checked' : ''}><span>${SMART_KIND_NAME[kd]}</span></label>`).join('')}</span></div>`;
     case 'ops':
@@ -892,7 +1093,7 @@ function updateLevelDesc() {
   const d = $('#lvlDesc');
   if (!d) return;
   const seenT = new Set();
-  const ex = probs.filter((p) => !seenT.has(p.type) && seenT.add(p.type)).map((p) => p.expr);
+  const ex = probs.filter((p) => !p.prose && !seenT.has(p.type) && seenT.add(p.type)).map((p) => p.expr);
   d.textContent = ex.length ? 'Например: ' + ex.map(symText).join(';  ') : '';
 }
 // показва полетата с числата според избраното ниво, без да пренарежда панела (плъзгачът не губи фокус)
@@ -1023,45 +1224,71 @@ function badge(p, i) {
   return `<span class="q-num">${i + 1})</span>`;
 }
 
-// лист със задачи като тетрадка: равни редове; задача на ред, после редове за смятане
-const tasksPerSheet = () => Math.floor(cfg.lines / (1 + cfg.gap));
-function taskSheet(container, list) {
-  const page = makePage('task', 1);
-  page.body.classList.add('ruled');
-  page.body.style.setProperty('--lines', cfg.lines);
-  const step = 1 + cfg.gap;
-  let h = '';
-  for (let r = 0; r < cfg.lines; r++) {
-    const i = r % step === 0 ? r / step : -1;
-    const p = i >= 0 ? list[i] : null;
-    h += p
-      ? `<div class="r-line q-row"><span class="q-ex">${i + 1}) ${esc(symText(p.expr))} =</span><span class="q-lead"></span><span class="q-box"></span></div>`
-      : '<div class="r-line"></div>';
-  }
-  page.body.innerHTML = h;
-  $('.pn', page.el).textContent = 'стр. 1 от 1';
-  container.append(page.el);
+// лист със задачи като тетрадка: 30 равни реда; задачата заема толкова реда, колкото ѝ трябват
+// (текстовите – 2–3), след нея следват редовете за смятане
+const taskText = (p) => p.task ? symText(p.task) : `${symText(p.expr)} =`;
+function taskEl(p, i) {
+  return el(`<div class="q-item${p.prose ? ' prose' : ''}"><div class="q-text"><b>${i + 1})</b> ${esc(taskText(p))}</div><span class="q-box"></span></div>`);
 }
+function buildTaskPage(container) {
+  const page = makePage('task', 1);
+  container.append(page.el);
+  const body = page.body;
+  body.classList.add('ruled');
+  body.style.setProperty('--lines', cfg.lines);
+  body.innerHTML = `<div class="rl-bg">${'<div></div>'.repeat(cfg.lines)}</div><div class="rl-fg"></div>`;
+  body.style.setProperty('--pitch', $('.rl-bg > div', body).getBoundingClientRect().height + 'px');
+  $('.pn', page.el).textContent = 'стр. 1 от 1';
+  return { page, fg: $('.rl-fg', body) };
+}
+// колко реда заема всяка задача (мери се в истинската ширина на листа)
+function measureLines(fg, list) {
+  const pitch = parseFloat(fg.parentElement.style.getPropertyValue('--pitch'));
+  const meas = el('<div class="rl-measure"></div>');
+  fg.append(meas);
+  const out = list.map((p, i) => {
+    const it = taskEl(p, i);
+    meas.append(it);
+    return Math.max(1, Math.round($('.q-text', it).getBoundingClientRect().height / pitch));
+  });
+  meas.remove();
+  return out;
+}
+function placeTasks(fg, list, lines) {
+  fg.innerHTML = '';
+  let row = 1;
+  list.forEach((p, i) => {
+    const it = taskEl(p, i);
+    it.style.gridRow = `${row} / span ${lines[i]}`;
+    fg.append(it);
+    row += lines[i] + cfg.gap;
+  });
+}
+const rowsNeeded = (lines) => lines.reduce((sum, x) => sum + x, 0) + cfg.gap * Math.max(0, lines.length - 1);
 
 // кратко решение: условието, отговорът вдясно и веригата от равенства отдолу
 function answerShort(p, i) {
-  const chain = p.parts && p.parts.length ? `<div class="s-chain">= ${esc(symText(p.parts.join(' = ')))}</div>` : '';
-  return el(`<div class="item s-item">
-    <div class="s-row"><span class="s-q">${i + 1}) ${esc(symText(p.expr))}</span><span class="s-a">= ${esc(fmtAns(p))}</span></div>
-    ${chain}
+  const chainTxt = p.chainText || (p.parts && p.parts.length ? '= ' + p.parts.join(' = ') : '');
+  const note = p.note ? `<div class="s-note">${esc(symText(p.note))}</div>` : '';
+  const chain = chainTxt ? `<div class="s-chain">${esc(symText(chainTxt))}</div>` : '';
+  const q = p.prose ? (p.type === 'error' ? `Намери грешката: ${p.expr}` : p.task) : p.expr;
+  return el(`<div class="item s-item${p.prose ? ' prose' : ''}">
+    <div class="s-row"><span class="s-q">${i + 1}) ${esc(symText(q))}</span><span class="s-a">${p.answerText ? '' : '= '}${esc(fmtAns(p))}</span></div>
+    ${note}${chain}
   </div>`);
 }
 
 function answerItem(p, i) {
   if (cfg.detail !== 'full') return answerShort(p, i);
   const parts = [];
-  let w = p.grid.w;
+  let w = p.grid ? p.grid.w : 20;
   if (usesInline(p)) { const ig = inlineGrid(p, true); w = Math.max(w, ig.w); parts.push(gridHTML(ig, 'ans')); }
-  parts.push(gridHTML(p.grid, 'ans'));
+  if (p.grid) parts.push(gridHTML(p.grid, 'ans'));
+  if (p.prose) w = 99;
   const steps = p.steps.map((st) => `<li><b>${esc(symText(st.lead))}:</b> <span class="math">${esc(symText(st.txt))}</span></li>`).join('');
   return el(`<div class="item" style="grid-column:span ${spanFor(w, 2)}">
-    <div class="item-top">${badge(p, i)}<span class="aexpr">${esc(symText(p.expr))}</span><span class="answer">= ${esc(fmtAns(p))}</span></div>
-    <div class="paper">${parts.join('')}</div>
+    <div class="item-top">${badge(p, i)}<span class="aexpr">${esc(symText(p.prose ? p.task : p.expr))}</span><span class="answer">${p.answerText ? '' : '= '}${esc(fmtAns(p))}</span></div>
+    ${parts.length ? `<div class="paper">${parts.join('')}</div>` : ''}
     <ol class="steps">${steps}</ol>
     ${cfg.check && p.check ? `<div class="check">Проверка: ${esc(symText(p.check))}</div>` : ''}
   </div>`);
@@ -1121,27 +1348,26 @@ function render() {
   const tg = el('<div class="sheet-group" data-group="tasks"><div class="sg-label">Лист със задачи</div><div class="pages"></div></div>');
   const ag = el('<div class="sheet-group" data-group="answers"><div class="sg-label">Лист с решенията</div><div class="pages"></div></div>');
   sh.append(tg, ag);
-  const draw = () => {
-    $('.pages', tg).innerHTML = '';
+  // винаги точно 1 лист задачи + 1 лист решения: махаме излишните задачи
+  const wanted = probs.length;
+  const { fg } = buildTaskPage($('.pages', tg));
+  const lineMap = new Map(probs.map((p, i) => [p.key, measureLines(fg, [p])[0]]));
+  const linesOf = (list) => list.map((p) => lineMap.get(p.key));
+  while (probs.length > 1 && rowsNeeded(linesOf(probs)) > cfg.lines) probs = trimTo(probs, probs.length - 1);
+  const capT = probs.length;
+  const drawAnswers = () => {
     $('.pages', ag).innerHTML = '';
-    taskSheet($('.pages', tg), probs);
     const ap = paginate($('.pages', ag), probs.map((p, i) => answerItem(p, i)), 'ans', probs.length);
     return { ap, capA: ap > 1 ? $('.page .pg-body', ag).children.length : Infinity };
   };
-  // винаги точно 1 лист задачи + 1 лист решения: махаме излишните задачи
-  const wanted = probs.length;
-  const capT = tasksPerSheet();
-  probs = trimTo(probs, capT);
-  let r = draw();
-  if (r.ap > 1) {
-    probs = trimTo(probs, r.capA);
-    draw();
-  }
-  r = { capT, capA: r.capA };
+  let r = drawAnswers();
+  if (r.ap > 1) { probs = trimTo(probs, r.capA); drawAnswers(); }
+  placeTasks(fg, probs, linesOf(probs));
+  r = { capT: capT < wanted ? capT : Infinity, capA: r.capA };
   const dropped = wanted - probs.length;
   const hint = r.capA < r.capT
     ? (cfg.detail === 'full' ? 'решенията не се побират: избери „Кратки“ решения или намали задачите' : 'решенията не се побират: намали задачите отляво')
-    : `с ${cfg.gap} ред${cfg.gap === 1 ? '' : 'а'} за смятане се побират ${capT}; намали задачите отляво`;
+    : `на 30-те реда се побират ${capT}; намали задачите отляво или редовете за смятане`;
   const pitch = (PAGE_BODY_MM / cfg.lines).toFixed(1).replace('.', ',');
   $('#summary').textContent = `${probs.length} задачи · ${cfg.lines} реда по ${pitch} мм` + (dropped ? ` · ${dropped} не се побраха (${hint})` : '');
   $('#summary').classList.toggle('warn', dropped > 0);
@@ -1216,7 +1442,7 @@ async function selectSheet() {
     sig, seed, title: cfg.title, created: new Date().toISOString(),
     level: cfg.level, levelCustom: !!cfg.levelCustom,
     cfg: clone(cfg),
-    problems: probs.map((p) => ({ type: p.type, expr: p.expr, answer: p.answer, tags: p.tags })),
+    problems: probs.map((p) => ({ type: p.type, expr: p.prose ? p.task : p.expr, answer: fmtAns(p), tags: p.tags })),
     result: null,
   };
   journal.unshift(entry);

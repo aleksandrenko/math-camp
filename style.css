@@ -14,6 +14,9 @@
   --navy: #1F5A6E;
   --navy-text: #1F5A6E;
   --plum: #8E6CC9;
+  --sky: #3E9BB5;
+  --rose: #C2577E;
+  --olive: #7C8A33;
   --focus: #1F5A6E;
   --shadow: 0 1px 2px rgb(60 45 20 / 6%), 0 8px 24px rgb(60 45 20 / 7%);
 
@@ -31,14 +34,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #191815; --surface: #22211D; --surface-2: #2A2823; --fg: #F2EEE4; --muted: #A9A294;
-    --line: #38352E; --chip: #302E28; --navy: #4C93AB; --navy-text: #8CC3D6; --plum: #B39BE6; --focus: #F4C430;
+    --line: #38352E; --chip: #302E28; --navy: #4C93AB; --navy-text: #8CC3D6; --plum: #B39BE6; --sky: #6FC0D8; --rose: #E58AAE; --olive: #B5C46A; --focus: #F4C430;
     --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 25%);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #191815; --surface: #22211D; --surface-2: #2A2823; --fg: #F2EEE4; --muted: #A9A294;
-  --line: #38352E; --chip: #302E28; --navy: #4C93AB; --navy-text: #8CC3D6; --plum: #B39BE6; --focus: #F4C430;
+  --line: #38352E; --chip: #302E28; --navy: #4C93AB; --navy-text: #8CC3D6; --plum: #B39BE6; --sky: #6FC0D8; --rose: #E58AAE; --olive: #B5C46A; --focus: #F4C430;
   --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 25%);
   color-scheme: dark;
 }
@@ -185,12 +188,18 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
 .pg-body { flex: 1; min-height: 0; overflow: hidden; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 5mm 4mm; align-content: start; }
 .pg-foot { display: flex; justify-content: space-between; padding-top: 1.8mm; font-size: 2.7mm; color: var(--p-muted); border-top: .25mm solid #E3E6EA; margin-top: 2mm; }
 
-/* task sheet: ruled like a notebook, 30 equal lines; a problem sits on a line, the next lines are for working */
-.pg-body.ruled { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(var(--lines), minmax(0, 1fr)); gap: 0; }
-.r-line { display: flex; align-items: flex-end; min-height: 0; border-bottom: .3mm dashed #BFC5CE; }
-.q-ex { font: 700 13pt/1 var(--f-body); white-space: nowrap; font-variant-numeric: tabular-nums; padding-bottom: 1.4mm; }
-.q-lead { flex: 1; min-width: 8mm; }
-.q-box { flex: none; width: 24mm; height: 68%; margin-bottom: .7mm; border: .4mm solid #1d1d1f; border-radius: 1.4mm; }
+/* task sheet: ruled like a notebook, 30 equal lines; a problem takes as many lines as its text needs,
+   its text sits on the lines (line-height = line pitch), working lines follow */
+.pg-body.ruled { position: relative; display: block; }
+.rl-bg, .rl-fg { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(var(--lines), minmax(0, 1fr)); }
+.rl-bg > div { border-bottom: .3mm dashed #BFC5CE; }
+.rl-measure { position: absolute; left: 0; right: 0; top: 0; visibility: hidden; }
+.q-item { position: relative; min-width: 0; }
+.q-text { font: 600 13pt/var(--pitch) var(--f-body); padding: 0 28mm 0 7mm; text-indent: -7mm; font-variant-numeric: tabular-nums; position: relative; top: .9mm; }
+.q-text b { font-weight: 700; }
+.q-item:not(.prose) .q-text { font-weight: 700; white-space: nowrap; }
+.q-item.prose .q-text { font-weight: 500; font-size: 12pt; }
+.q-box { position: absolute; right: 0; bottom: .7mm; width: 24mm; height: calc(var(--pitch) * .68); border: .4mm solid #1d1d1f; border-radius: 1.4mm; }
 
 /* answer sheet, short: blue problem, bold answer on the right, monospace chain below */
 .pg-body.short { gap: 0; }
@@ -360,3 +369,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
 .fld.kinds { align-items: flex-start; flex-direction: column; }
 
 .pv-sum.warn { color: var(--coral); font-weight: 600; }
+
+.fld-note { margin: 0; font-size: 13px; color: var(--muted); }
+.s-item.prose .s-q { font-weight: 500; font-size: 11pt; }
+.s-note { margin-top: .4mm; font-size: 10pt; color: #8a3b16; }
