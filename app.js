@@ -149,7 +149,7 @@ const levelWord = (from, to) => (to > from ? 'малко по-трудно' : to
 
 /* ---------------- конфигурация ---------------- */
 const BASE = applyLevel({
-  title: 'Работен лист по математика', detail: 'short', symbols: 'x', work: true, order: 'grouped', names: true, check: true, noTrivial: true, focus: [],
+  title: 'Работен лист по математика', detail: 'short', symbols: 'x', lines: 30, gap: 1, order: 'grouped', names: true, check: true, noTrivial: true, focus: [],
   level: 5, levelCustom: false,
   smart: { on: true, n: 8, kinds: { group: true, distrib: true, chain: true, decomp: true, combo: true } },
   add: { on: true, n: 1 },
@@ -182,7 +182,8 @@ function merge(target, patch) {
 
 const stored = store.get(CFG_KEY, {});
 let cfg = merge(clone(BASE), stored);
-delete cfg.seed; delete cfg.preset; delete cfg.layout; delete cfg.cols;
+delete cfg.seed; delete cfg.preset; delete cfg.layout; delete cfg.cols; delete cfg.work;
+cfg.lines = 30; // листът е винаги 30 реда, като тетрадка
 let seed = stored.seed || newCode();
 let view = 'both';
 let probs = [];
@@ -191,7 +192,7 @@ let activePreset = stored.preset || null;
 // стабилен JSON (сортирани ключове), за да дава един и същ номер един и същ лист
 const stable = (o) => JSON.stringify(o, (k, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((x) => [x, v[x]])) : v));
 // настройките, които не променят самите задачи, не влизат в отпечатъка
-const problemKey = () => seed + '|' + stable({ ...cfg, title: '', names: 0, check: 0, symbols: 0, work: 0, detail: 0 });
+const problemKey = () => seed + '|' + stable({ ...cfg, title: '', names: 0, check: 0, symbols: 0, lines: 0, gap: 0, detail: 0 });
 
 function newCode() {
   const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -884,10 +885,10 @@ function buildConfig() {
       <h2>Листът</h2>
       <div class="rows">
         <input class="txt" id="f-title" data-k="title" value="${esc(cfg.title)}" aria-label="Заглавие на листа" maxlength="60">
+        <div class="row"><span>Редове за смятане след задача</span>${segHTML('gap', [[0, '0'], [1, '1'], [2, '2']])}</div>
         <div class="row"><span>Решения</span>${segHTML('detail', [['short', 'Кратки'], ['full', 'Подробни']])}</div>
         <div class="row"><span>Знаци</span>${segHTML('symbols', [['bg', '· :'], ['x', '× ÷'], ['pc', '* /']])}</div>
         <div class="row"><span>Подредба</span>${segHTML('order', [['mixed', 'Разбъркани'], ['grouped', 'По вид']])}</div>
-        <label class="chk"><input type="checkbox" id="f-work" data-k="work" ${cfg.work ? 'checked' : ''}> Ред за смятане под всяка задача</label>
         <label class="chk"><input type="checkbox" id="f-names" data-k="names" ${cfg.names ? 'checked' : ''}> Място за име и дата</label>
         <label class="chk"><input type="checkbox" id="f-check" data-k="check" ${cfg.check ? 'checked' : ''}> Проверка в решенията</label>
         <label class="chk"><input type="checkbox" id="f-trivial" data-k="noTrivial" ${cfg.noTrivial ? 'checked' : ''}> Без лесни случаи (0 и 1)</label>
@@ -1003,7 +1004,7 @@ function wireConfig() {
     const seg = e.target.closest('[data-seg]');
     if (seg) {
       const key = seg.dataset.seg;
-      cfg[key] = key === 'cols' ? Number(seg.dataset.v) : seg.dataset.v;
+      cfg[key] = key === 'gap' ? Number(seg.dataset.v) : seg.dataset.v;
       $$(`[data-seg="${key}"]`, root).forEach((b) => b.setAttribute('aria-pressed', String(b === seg)));
       schedule();
       return;
@@ -1034,6 +1035,7 @@ const symText = (s) => String(s).replace(/ · /g, ` ${SYMBOLS[cfg.symbols || 'bg
 /* ---------------- листове A4 ---------------- */
 const MM = 96 / 25.4;
 const PAGE_INNER_MM = 186;
+const PAGE_BODY_MM = 259; // височина на мястото за задачи на A4 (без заглавие и долен ред)
 const CELL_MM = 5;
 
 function spanFor(cells, cols) {
@@ -1059,12 +1061,24 @@ function badge(p, i) {
   return `<span class="q-num">${i + 1})</span>`;
 }
 
-// лист със задачи на редове: „1) 25 × 63 × 4 = ........ [   ]“ и ред за смятане
-function taskItem(p, i) {
-  return el(`<div class="item q-item">
-    <div class="q-row"><span class="q-ex">${i + 1}) ${esc(symText(p.expr))} =</span><span class="q-lead"></span><span class="q-box"></span></div>
-    ${cfg.work ? '<div class="q-work"></div>' : ''}
-  </div>`);
+// лист със задачи като тетрадка: равни редове; задача на ред, после редове за смятане
+const tasksPerSheet = () => Math.floor(cfg.lines / (1 + cfg.gap));
+function taskSheet(container, list) {
+  const page = makePage('task', 1);
+  page.body.classList.add('ruled');
+  page.body.style.setProperty('--lines', cfg.lines);
+  const step = 1 + cfg.gap;
+  let h = '';
+  for (let r = 0; r < cfg.lines; r++) {
+    const i = r % step === 0 ? r / step : -1;
+    const p = i >= 0 ? list[i] : null;
+    h += p
+      ? `<div class="r-line q-row"><span class="q-ex">${i + 1}) ${esc(symText(p.expr))} =</span><span class="q-lead"></span><span class="q-box"></span></div>`
+      : '<div class="r-line"></div>';
+  }
+  page.body.innerHTML = h;
+  $('.pn', page.el).textContent = 'стр. 1 от 1';
+  container.append(page.el);
 }
 
 // кратко решение: условието, отговорът вдясно и веригата от равенства отдолу
@@ -1148,23 +1162,26 @@ function render() {
   const draw = () => {
     $('.pages', tg).innerHTML = '';
     $('.pages', ag).innerHTML = '';
-    const tp = paginate($('.pages', tg), probs.map((p, i) => taskItem(p, i)), 'task', probs.length);
+    taskSheet($('.pages', tg), probs);
     const ap = paginate($('.pages', ag), probs.map((p, i) => answerItem(p, i)), 'ans', probs.length);
-    const first = (g) => $('.page .pg-body', g).children.length;
-    return { tp, ap, capT: tp > 1 ? first(tg) : Infinity, capA: ap > 1 ? first(ag) : Infinity };
+    return { ap, capA: ap > 1 ? $('.page .pg-body', ag).children.length : Infinity };
   };
   // винаги точно 1 лист задачи + 1 лист решения: махаме излишните задачи
   const wanted = probs.length;
-  const r = draw();
-  if (r.tp > 1 || r.ap > 1) {
-    probs = trimTo(probs, Math.min(r.capT, r.capA));
+  const capT = tasksPerSheet();
+  probs = trimTo(probs, capT);
+  let r = draw();
+  if (r.ap > 1) {
+    probs = trimTo(probs, r.capA);
     draw();
   }
+  r = { capT, capA: r.capA };
   const dropped = wanted - probs.length;
   const hint = r.capA < r.capT
     ? (cfg.detail === 'full' ? 'решенията не се побират: избери „Кратки“ решения или намали задачите' : 'решенията не се побират: намали задачите отляво')
-    : 'намали задачите отляво или изключи реда за смятане';
-  $('#summary').textContent = `${probs.length} задачи · 1 лист задачи + 1 лист решения` + (dropped ? ` · ${dropped} не се побраха (${hint})` : '');
+    : `с ${cfg.gap} ред${cfg.gap === 1 ? '' : 'а'} за смятане се побират ${capT}; намали задачите отляво`;
+  const pitch = (PAGE_BODY_MM / cfg.lines).toFixed(1).replace('.', ',');
+  $('#summary').textContent = `${probs.length} задачи · ${cfg.lines} реда по ${pitch} мм` + (dropped ? ` · ${dropped} не се побраха (${hint})` : '');
   $('#summary').classList.toggle('warn', dropped > 0);
   applyView();
   updateSelectedUI();
