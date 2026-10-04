@@ -15,11 +15,15 @@ const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const PLACE = ['единици', 'десетици', 'стотици', 'хиляди', 'десетици хиляди', 'стотици хиляди', 'милиони', 'десетици милиони'];
 const PLACE_FROM = ['единиците', 'десетиците', 'стотиците', 'хилядите', 'десетиците хиляди', 'стотиците хиляди', 'милионите', 'десетиците милиони'];
 
-const COLORS = { add: '#F4C430', sub: '#F07258', mul: '#6DBE94', div: '#1F5A6E', mix: '#24221E' };
-const BADGE_TEXT = { add: '#2B2410', sub: '#2A1610', mul: '#15301F', div: '#FFFFFF', mix: '#FFFFFF' };
-const CHROME_COLORS = { add: 'var(--yellow)', sub: 'var(--coral)', mul: 'var(--green)', div: 'var(--navy)', mix: 'var(--fg)' };
-const TYPE_NAME = { add: 'Събиране', sub: 'Изваждане', mul: 'Умножение', div: 'Деление', mix: 'Ред на действията' };
-const TYPE_SYM = { add: 'plus', sub: 'minus', mul: 'times', div: 'divide', mix: 'equals' };
+const TYPES = ['smart', 'add', 'sub', 'mul', 'div', 'mix'];
+const COLORS = { smart: '#8E6CC9', add: '#F4C430', sub: '#F07258', mul: '#6DBE94', div: '#1F5A6E', mix: '#24221E' };
+const CHROME_COLORS = { smart: 'var(--plum)', add: 'var(--yellow)', sub: 'var(--coral)', mul: 'var(--green)', div: 'var(--navy)', mix: 'var(--fg)' };
+const TYPE_NAME = { smart: 'Рационално смятане', add: 'Събиране', sub: 'Изваждане', mul: 'Умножение', div: 'Деление', mix: 'Ред на действията' };
+const TYPE_SYM = { smart: 'dot', add: 'plus', sub: 'minus', mul: 'times', div: 'divide', mix: 'equals' };
+const SMART_KINDS = ['group', 'distrib', 'chain', 'decomp', 'combo'];
+const SMART_KIND_NAME = { group: 'Групиране', distrib: 'Общ множител', chain: 'Деление на части', decomp: 'Разлагане', combo: 'Комбинирани' };
+const SMALL_PAIRS = [[2, 5], [5, 2], [4, 25], [25, 4], [20, 5], [5, 20], [50, 2], [2, 50]];
+const BIG_PAIRS = [[125, 8], [8, 125], [250, 4], [4, 250], [500, 2], [2, 500], [200, 5], [25, 40], [40, 25]];
 
 const SKILLS = {
   'add-simple': { type: 'add', name: 'Събиране без преминаване' },
@@ -37,6 +41,11 @@ const SKILLS = {
   'div-rem': { type: 'div', name: 'Деление с остатък' },
   'mix-order': { type: 'mix', name: 'Ред на действията' },
   'mix-paren': { type: 'mix', name: 'Изрази със скоби' },
+  'smart-group': { type: 'smart', name: 'Групиране на множители' },
+  'smart-distrib': { type: 'smart', name: 'Изнасяне на общ множител' },
+  'smart-chain': { type: 'smart', name: 'Последователно деление' },
+  'smart-decomp': { type: 'smart', name: 'Деление чрез разлагане' },
+  'smart-combo': { type: 'smart', name: 'Комбинирани изрази' },
 };
 
 /* ---------------- storage (try/catch: може да е недостъпно) ---------------- */
@@ -75,6 +84,18 @@ const db = {
 
 /* ---------------- нива на трудност: същите видове задачи, различни числа ---------------- */
 const LADDER = {
+  smart: [
+    { xMin: 2, xMax: 9, big: false, t100: false, depth: 2, dMax: 5, rMax: 5, k: 2 },
+    { xMin: 2, xMax: 20, big: false, t100: false, depth: 2, dMax: 5, rMax: 9, k: 2 },
+    { xMin: 11, xMax: 50, big: false, t100: false, depth: 2, dMax: 9, rMax: 9, k: 2 },
+    { xMin: 11, xMax: 99, big: true, t100: false, depth: 2, dMax: 9, rMax: 12, k: 3 },
+    { xMin: 11, xMax: 99, big: true, t100: true, depth: 3, dMax: 6, rMax: 10, k: 3 },
+    { xMin: 11, xMax: 199, big: true, t100: true, depth: 3, dMax: 8, rMax: 12, k: 3 },
+    { xMin: 100, xMax: 999, big: true, t100: true, depth: 3, dMax: 9, rMax: 15, k: 3 },
+    { xMin: 100, xMax: 999, big: true, t100: true, depth: 3, dMax: 9, rMax: 20, k: 4 },
+    { xMin: 100, xMax: 9999, big: true, t100: true, depth: 3, dMax: 9, rMax: 25, k: 4 },
+    { xMin: 1000, xMax: 9999, big: true, t100: true, depth: 3, dMax: 9, rMax: 30, k: 4 },
+  ],
   add: [
     { min: 1, max: 10, terms: 2, noCarry: true }, { min: 2, max: 20, terms: 2, noCarry: false },
     { min: 10, max: 99, terms: 2, noCarry: true }, { min: 10, max: 99, terms: 2, noCarry: false },
@@ -128,25 +149,26 @@ const levelWord = (from, to) => (to > from ? 'малко по-трудно' : to
 
 /* ---------------- конфигурация ---------------- */
 const BASE = applyLevel({
-  title: 'Упражнение по смятане', cols: 2, layout: 'lines', symbols: 'bg', work: false, order: 'mixed', names: true, check: true, noTrivial: true, focus: [],
+  title: 'Работен лист по математика', cols: 1, layout: 'lines', detail: 'short', symbols: 'x', work: true, order: 'grouped', names: true, check: true, noTrivial: true, focus: [],
   level: 5, levelCustom: false,
-  add: { on: true, n: 3 },
-  sub: { on: true, n: 3, neg: false },
-  mul: { on: true, n: 3 },
-  div: { on: true, n: 3, rem: false },
-  mix: { on: true, n: 3, allow: { '+': true, '−': true, '·': true, ':': true } },
+  smart: { on: true, n: 8, kinds: { group: true, distrib: true, chain: true, decomp: true, combo: true } },
+  add: { on: true, n: 1 },
+  sub: { on: true, n: 1, neg: false },
+  mul: { on: true, n: 1 },
+  div: { on: true, n: 2, rem: false },
+  mix: { on: true, n: 2, allow: { '+': true, '−': true, '·': true, ':': true } },
 }, 5);
 
 const PRESETS = [
-  { id: 'g1', label: '1 клас', level: 2, patch: {
+  { id: 'g1', label: '1 клас', level: 2, patch: { smart: { on: false },
     add: { on: true, n: 8 }, sub: { on: true, n: 8 }, mul: { on: false }, div: { on: false }, mix: { on: false } } },
-  { id: 'g2', label: '2 клас', level: 3, patch: {
+  { id: 'g2', label: '2 клас', level: 3, patch: { smart: { on: true, n: 4 },
     add: { on: true, n: 4 }, sub: { on: true, n: 4 }, mul: { on: true, n: 4 }, div: { on: true, n: 4 }, mix: { on: false } } },
-  { id: 'g3', label: '3 клас', level: 5, patch: {
+  { id: 'g3', label: '3 клас', level: 5, patch: { smart: { on: true, n: 6 },
     add: { on: true, n: 3 }, sub: { on: true, n: 3 }, mul: { on: true, n: 3 }, div: { on: true, n: 3 }, mix: { on: true, n: 3 } } },
-  { id: 'g4', label: '4 клас', level: 8, patch: {
+  { id: 'g4', label: '4 клас', level: 8, patch: { smart: { on: true, n: 8 },
     add: { on: true, n: 2 }, sub: { on: true, n: 2 }, mul: { on: true, n: 3 }, div: { on: true, n: 3 }, mix: { on: true, n: 2 } } },
-  { id: 'table', label: 'Таблицата за умножение', level: 3, patch: {
+  { id: 'table', label: 'Таблицата за умножение', level: 3, patch: { smart: { on: false },
     add: { on: false }, sub: { on: false }, div: { on: false }, mix: { on: false }, mul: { on: true, n: 24 } } },
 ];
 
@@ -169,7 +191,7 @@ let activePreset = stored.preset || null;
 // стабилен JSON (сортирани ключове), за да дава един и същ номер един и същ лист
 const stable = (o) => JSON.stringify(o, (k, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((x) => [x, v[x]])) : v));
 // настройките, които не променят самите задачи, не влизат в отпечатъка
-const problemKey = () => seed + '|' + stable({ ...cfg, title: '', names: 0, check: 0, cols: 0, layout: 0, symbols: 0, work: 0 });
+const problemKey = () => seed + '|' + stable({ ...cfg, title: '', names: 0, check: 0, cols: 0, layout: 0, symbols: 0, work: 0, detail: 0 });
 
 function newCode() {
   const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -469,7 +491,7 @@ function fmtTok(t, sp) {
 }
 function reduceAll(toks) {
   let t = toks.map((x) => (typeof x === 'object' ? { ...x } : x));
-  const states = [], notes = [];
+  const states = [], statesSp = [], notes = [];
   let orderMattered = false;
   while (t.length > 1) {
     let lo = 0, hi = t.length, open = -1, inG = false;
@@ -502,8 +524,9 @@ function reduceAll(toks) {
     }
     notes.push({ lead, txt: `${x} ${o} ${y} = ${r}` });
     states.push(fmtTok(t));
+    statesSp.push(fmtTok(t, true));
   }
-  return { states, notes, result: t[0].n, orderMattered };
+  return { states, statesSp, notes, result: t[0].n, orderMattered };
 }
 function solveMix(toks) {
   const red = reduceAll(toks);
@@ -517,7 +540,78 @@ function solveMix(toks) {
   const tags = [];
   if (red.orderMattered || toks.some((x) => x.o && isMD(x.o))) tags.push('mix-order');
   if (hasParen) tags.push('mix-paren');
-  return { grid: g, steps: red.notes, answer: String(red.result), value: red.result, check: '', tags, expr: fmtTok(toks, true) };
+  return { grid: g, steps: red.notes, answer: String(red.result), value: red.result, check: '', tags, expr: fmtTok(toks, true), parts: red.statesSp.slice(0, -1) };
+}
+
+/* ---------------- кратки решения: верига от равенства ---------------- */
+const placeParts = (n) => [...String(n)].map((d, i, arr) => Number(d) * 10 ** (arr.length - 1 - i)).filter((v) => v > 0);
+function partsAdd(nums) {
+  const L = Math.max(...nums.map(len));
+  if (L < 2) return [];
+  const groups = [], sums = [];
+  for (let i = L - 1; i >= 0; i--) {
+    const ps = nums.filter((n) => i < len(n)).map((n) => digitAt(n, i) * 10 ** i).filter((v) => v > 0);
+    if (!ps.length) continue;
+    groups.push(ps.length > 1 ? `(${ps.join(' + ')})` : String(ps[0]));
+    sums.push(ps.reduce((a, b) => a + b, 0));
+  }
+  if (groups.length < 2 && !groups[0]?.startsWith('(')) return [];
+  const out = [groups.join(' + ')];
+  if (sums.length > 1) out.push(sums.join(' + '));
+  return out;
+}
+function partsSub(a, b) {
+  if (a < b) return [`−(${b} − ${a})`, ...partsSub(b, a).map((x) => `−(${x})`)];
+  const ps = placeParts(b);
+  if (ps.length < 2) return [];
+  const out = [];
+  let cur = a;
+  for (let k = 0; k < ps.length - 1; k++) {
+    out.push(`${cur} − ${ps.slice(k).join(' − ')}`);
+    cur -= ps[k];
+  }
+  out.push(`${cur} − ${ps[ps.length - 1]}`);
+  return out;
+}
+function partsMul(a, b) {
+  if (a < 10 && b < 10) return [];
+  if (b < 10 || a < 10) {
+    const [big, small, left] = b < 10 ? [a, b, false] : [b, a, true];
+    const ps = placeParts(big);
+    if (ps.length < 2) return [];
+    return [left ? `${small} · (${ps.join(' + ')})` : `(${ps.join(' + ')}) · ${small}`, ps.map((x) => x * small).join(' + ')];
+  }
+  const ps = placeParts(b);
+  if (ps.length < 2) { const z = 10 ** (len(b) - 1); return [`${a} · ${b / z} · ${z}`, `${(a * b) / z} · ${z}`]; }
+  return [ps.map((x) => `${a} · ${x}`).join(' + '), ps.map((x) => a * x).join(' + ')];
+}
+function partsDiv(a, b) {
+  const q = Math.floor(a / b), r = a % b, base = a - r;
+  if (q < 10) return [];
+  let pieces = null;
+  // първо търсим „кръгло + малко“, както се смята наум: 6045 = 6000 + 45
+  for (let k = len(base) - 1; k >= 1; k--) {
+    const h = Math.floor(base / 10 ** k) * 10 ** k, sm = base - h;
+    if (sm === 0) break;
+    if (h % b === 0 && sm % b === 0) { pieces = [h, sm]; break; }
+  }
+  if (!pieces) pieces = [...String(q)].map((d, i, arr) => Number(d) * b * 10 ** (arr.length - 1 - i)).filter((v) => v > 0);
+  if (pieces.length < 2) return [];
+  const all = r ? [...pieces, r] : pieces;
+  return [`(${all.join(' + ')}) : ${b}`, pieces.map((x) => x / b).join(' + ') + (r ? `, ост. ${r}` : '')];
+}
+const fmtNum = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+function fmtAns(p) {
+  if (p.type === 'div' && p.rem) return `${fmtNum(p.value)}, ост. ${p.rem}`;
+  return p.value < 0 ? '−' + fmtNum(-p.value) : fmtNum(p.value);
+}
+// решетка от квадратчета за подробния вид: изразът и всяко равенство на нов ред
+function gridFromParts(expr, parts, ans) {
+  const cmp = (x) => x.replace(/\s+/g, '');
+  const rows = [cmp(expr) + '=', ...parts.map((x) => '=' + cmp(x)), '=' + ans];
+  const g = mkGrid(Math.max(...rows.map((x) => [...x].length)));
+  rows.forEach((x, i) => putStr(addRow(g), 0, x, i === 0 ? {} : { a: true }));
+  return g;
 }
 
 /* ---------------- генериране ---------------- */
@@ -540,7 +634,7 @@ function generate(c, sd) {
       const nums = Array.from({ length: Math.max(2, Math.min(4, o.terms)) }, () => R(o.min, o.max));
       if (c.noTrivial && nums.some((n) => n === 0)) return null;
       if (o.noCarry && !carryFree(nums)) return null;
-      return { type: 'add', key: 'add' + nums.join(','), nums, ...solveAdd(nums), expr: nums.join(' + ') };
+      return { type: 'add', key: 'add' + nums.join(','), nums, ...solveAdd(nums), expr: nums.join(' + '), parts: partsAdd(nums) };
     },
     sub() {
       const o = c.sub;
@@ -548,13 +642,13 @@ function generate(c, sd) {
       if (!o.neg && b > a) { if (Math.min(o.bMin, o.bMax) > a) return null; b = R(Math.min(o.bMin, o.bMax), Math.min(Math.max(o.bMin, o.bMax), a)); }
       if (c.noTrivial && (b === 0 || a === b)) return null;
       if (o.noCarry) { for (let i = 0; i < len(b); i++) if (digitAt(b, i) > digitAt(a, i)) return null; if (b > a) return null; }
-      return { type: 'sub', key: `sub${a},${b}`, nums: [a, b], forceInline: a < b, ...solveSub(a, b), expr: `${a} − ${b}` };
+      return { type: 'sub', key: `sub${a},${b}`, nums: [a, b], forceInline: a < b, ...solveSub(a, b), expr: `${a} − ${b}`, parts: partsSub(a, b) };
     },
     mul() {
       const o = c.mul;
       const a = R(o.aMin, o.aMax), b = R(o.bMin, o.bMax);
       if (c.noTrivial && (a < 2 || b < 2)) return null;
-      return { type: 'mul', key: `mul${a},${b}`, nums: [a, b], ...solveMul(a, b), expr: `${a} · ${b}` };
+      return { type: 'mul', key: `mul${a},${b}`, nums: [a, b], ...solveMul(a, b), expr: `${a} · ${b}`, parts: partsMul(a, b) };
     },
     div() {
       const o = c.div;
@@ -572,7 +666,7 @@ function generate(c, sd) {
         a = R(o.aMin, o.aMax);
         if (a < b || a % b === 0) return null;
       }
-      return { type: 'div', key: `div${a},${b}`, nums: [a, b], ...solveDiv(a, b, o.rem), expr: `${a} : ${b}` };
+      return { type: 'div', key: `div${a},${b}`, nums: [a, b], ...solveDiv(a, b, o.rem), expr: `${a} : ${b}`, parts: partsDiv(a, b) };
     },
     mix() {
       const o = c.mix;
@@ -603,16 +697,84 @@ function generate(c, sd) {
       if (!s) return null;
       return { type: 'mix', key: 'mix' + s.expr, ...s };
     },
+    smart(k) {
+      const o = c.smart;
+      const kinds = SMART_KINDS.filter((x) => o.kinds[x]);
+      if (!kinds.length) return null;
+      const kind = kinds[k % kinds.length];
+      const X = () => R(Math.max(2, o.xMin), Math.max(2, o.xMax));
+      let expr, value, parts, steps;
+      if (kind === 'group') {
+        const pairs = o.big ? [...SMALL_PAIRS, ...BIG_PAIRS] : SMALL_PAIRS;
+        const [p, q] = pairs[Math.floor(rng() * pairs.length)];
+        const x = X();
+        if (x === p || x === q) return null;
+        expr = `${p} · ${x} · ${q}`; value = p * q * x;
+        parts = [`(${p} · ${q}) · ${x}`, `${p * q} · ${x}`];
+        steps = [{ lead: 'Разместваме множителите', txt: `${p} · ${q} = ${p * q}, удобно за умножение` }, { lead: 'Умножаваме', txt: `${p * q} · ${x} = ${value}` }];
+      } else if (kind === 'distrib') {
+        const T = o.t100 && rng() < 0.6 ? 100 : 10;
+        const a = X();
+        const minus = rng() < 0.45;
+        let b, d;
+        if (!minus) { b = R(1, T - 1); d = T - b; if (b === d) return null; }
+        else { d = R(2, T === 100 ? 99 : 60); b = d + T; }
+        const op = minus ? '−' : '+';
+        expr = `${a} · ${b} ${op} ${a} · ${d}`; value = a * T;
+        parts = [`${a} · (${b} ${op} ${d})`, `${a} · ${T}`];
+        steps = [{ lead: 'Общ множител', txt: `${a} е и в двете произведения → ${a} · (${b} ${op} ${d})` }, { lead: 'Скобите', txt: `${b} ${op} ${d} = ${T}` }, { lead: 'Умножаваме', txt: `${a} · ${T} = ${value}` }];
+      } else if (kind === 'chain') {
+        const ds = Array.from({ length: o.depth }, () => R(2, Math.max(2, o.dMax)));
+        const r = R(2, Math.max(2, o.rMax));
+        const N = ds.reduce((m, d) => m * d, r);
+        const build = (start, rest) => rest.reduce((e, d, i) => (i < rest.length - 1 ? `(${e} : ${d})` : `${e} : ${d}`), String(start));
+        expr = build(N, ds); value = r;
+        parts = []; steps = [];
+        let v = N;
+        ds.forEach((d, i) => {
+          steps.push({ lead: `${i + 1}. деление`, txt: `${v} : ${d} = ${v / d}` });
+          v /= d;
+          if (i < ds.length - 1) parts.push(build(v, ds.slice(i + 1)));
+        });
+      } else if (kind === 'decomp') {
+        const b = R(2, 9);
+        const pw = 10 ** o.k;
+        const ds = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((d) => (d * pw) % b === 0);
+        if (!ds.length) return null;
+        const h = ds[Math.floor(rng() * ds.length)] * pw;
+        const sN = R(1, Math.floor(99 / b));
+        const small = b * sN;
+        const a = h + small;
+        expr = `${a} : ${b}`; value = h / b + sN;
+        parts = [`(${h} + ${small}) : ${b}`, `${h / b} + ${sN}`];
+        steps = [{ lead: 'Разлагаме делимото', txt: `${a} = ${h} + ${small}` }, { lead: 'Делим всяка част', txt: `${h} : ${b} = ${h / b}; ${small} : ${b} = ${sN}` }, { lead: 'Събираме', txt: `${h / b} + ${sN} = ${value}` }];
+      } else {
+        const a = X();
+        const b = R(1, 9), d = 10 - b;
+        if (b === d) return null;
+        const dv = R(2, 5);
+        const m = R(Math.max(10, o.xMin), Math.max(20, o.xMax * 2));
+        const M = dv * m, Q = R(1, 9) * 10, P = M + Q;
+        expr = `${a} · ${b} + ${a} · ${d} + (${P} − ${Q}) : ${dv}`; value = a * 10 + m;
+        parts = [`${a} · (${b} + ${d}) + ${M} : ${dv}`, `${a * 10} + ${m}`];
+        steps = [{ lead: 'Общ множител', txt: `${a} · ${b} + ${a} · ${d} = ${a} · (${b} + ${d}) = ${a * 10}` }, { lead: 'Скобите', txt: `${P} − ${Q} = ${M}` }, { lead: 'Делим', txt: `${M} : ${dv} = ${m}` }, { lead: 'Събираме', txt: `${a * 10} + ${m} = ${value}` }];
+      }
+      return {
+        type: 'smart', kind, kindIdx: SMART_KINDS.indexOf(kind), key: 'smart' + expr, expr, value, answer: String(value), parts, steps,
+        check: '', tags: ['smart-' + kind], grid: gridFromParts(expr, parts, String(value)),
+      };
+    },
   };
 
-  for (const type of ['add', 'sub', 'mul', 'div', 'mix']) {
+  for (const type of TYPES) {
     const o = c[type];
-    if (!o.on) continue;
+    if (!o || !o.on) continue;
+    const blockStart = out.length;
     const wanted = [...focus].filter((f) => SKILLS[f]?.type === type);
     for (let k = 0; k < Math.min(60, o.n); k++) {
       let pick = null, fallback = null;
       for (let tries = 0; tries < 300; tries++) {
-        const p = makers[type]();
+        const p = makers[type](k);
         if (!p) continue;
         if (seen.has(p.key) && tries < 250) continue;
         fallback ??= p;
@@ -623,6 +785,11 @@ function generate(c, sd) {
       }
       pick ??= fallback;
       if (pick) { seen.add(pick.key); out.push(pick); }
+    }
+    // рационалното смятане се подрежда по вид: групиране, общ множител, деление...
+    if (type === 'smart' && c.order !== 'mixed') {
+      const block = out.splice(blockStart).sort((x, y) => x.kindIdx - y.kindIdx);
+      out.push(...block);
     }
   }
   if (c.order === 'mixed') {
@@ -640,6 +807,7 @@ function sticker(kind, fill, size = 32, cls = '') {
     case 'minus': body = '<rect x="4" y="30" width="92" height="40" rx="18"/>'; eyes = eye(40, 50) + eye(60, 50); break;
     case 'times': body = '<g transform="rotate(45 50 50)"><rect x="33" y="4" width="34" height="92" rx="13"/><rect x="4" y="33" width="92" height="34" rx="13"/></g>'; eyes = eye(41, 50) + eye(59, 50); break;
     case 'divide': body = '<rect x="4" y="37" width="92" height="27" rx="13"/><circle cx="50" cy="15" r="12"/><circle cx="50" cy="86" r="12"/>'; eyes = eye(41, 50.5, 6.5) + eye(59, 50.5, 6.5); break;
+    case 'dot': body = '<circle cx="50" cy="50" r="44"/>'; eyes = eye(40, 46) + eye(60, 46); break;
     default: body = '<rect x="4" y="18" width="92" height="28" rx="13"/><rect x="4" y="56" width="92" height="28" rx="13"/>'; eyes = eye(40, 32, 6.5) + eye(60, 32, 6.5);
   }
   return `<svg class="stk ${cls}" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><g style="fill:${fill}">${body}</g>${eyes}</svg>`;
@@ -647,6 +815,7 @@ function sticker(kind, fill, size = 32, cls = '') {
 
 /* ---------------- конфигурационен панел ---------------- */
 const TYPE_FIELDS = {
+  smart: [['range', 'Числото, с което се смята', 'xMin', 'xMax'], ['kinds', 'Видове', 'kinds']],
   add: [['range', 'Събираеми', 'min', 'max'], ['num', 'Брой събираеми', 'terms', 2, 4], ['check', 'Без преминаване през десетицата', 'noCarry']],
   sub: [['range', 'Умаляемо', 'aMin', 'aMax'], ['range', 'Умалител', 'bMin', 'bMax'], ['check', 'Без заемане', 'noCarry'], ['check', 'Може отрицателен резултат', 'neg']],
   mul: [['range', 'Първи множител', 'aMin', 'aMax'], ['range', 'Втори множител', 'bMin', 'bMax']],
@@ -664,6 +833,8 @@ function fieldHTML(type, f) {
       return `<div class="fld"><label class="lbl" for="${id(f[2])}">${f[1]}</label><input class="num sm" type="number" inputmode="numeric" min="${f[3]}" max="${f[4]}" id="${id(f[2])}" data-k="${type}.${f[2]}" value="${o[f[2]]}"></div>`;
     case 'check':
       return `<label class="chk"><input type="checkbox" id="${id(f[2])}" data-k="${type}.${f[2]}" ${o[f[2]] ? 'checked' : ''}> ${f[1]}</label>`;
+    case 'kinds':
+      return `<div class="fld kinds"><span class="lbl">${f[1]}</span><span class="ops wide">${SMART_KINDS.map((kd) => `<label><input type="checkbox" id="${id('k-' + kd)}" data-k="${type}.kinds.${kd}" ${o.kinds[kd] ? 'checked' : ''}><span>${SMART_KIND_NAME[kd]}</span></label>`).join('')}</span></div>`;
     case 'ops':
       return `<div class="fld"><span class="lbl">${f[1]}</span><span class="ops">${['+', '−', '·', ':'].map((op, i) => `<label><input type="checkbox" id="${id('op' + i)}" data-k="${type}.allow.${op}" ${o.allow[op] ? 'checked' : ''}><span>${op}</span></label>`).join('')}</span></div>`;
   }
@@ -715,15 +886,16 @@ function buildConfig() {
         <input class="txt" id="f-title" data-k="title" value="${esc(cfg.title)}" aria-label="Заглавие на листа" maxlength="60">
         <div class="row"><span>Запис</span>${segHTML('layout', [['lines', 'Редове'], ['column', 'В колонка'], ['inline', 'С квадратчета']])}</div>
         <div class="row"><span>Колони</span>${segHTML('cols', [[1, '1'], [2, '2'], [3, '3'], [4, '4']])}</div>
+        <div class="row"><span>Решения</span>${segHTML('detail', [['short', 'Кратки'], ['full', 'Подробни']])}</div>
         <div class="row"><span>Знаци</span>${segHTML('symbols', [['bg', '· :'], ['x', '× ÷'], ['pc', '* /']])}</div>
         <div class="row"><span>Подредба</span>${segHTML('order', [['mixed', 'Разбъркани'], ['grouped', 'По вид']])}</div>
-        ${cfg.layout === 'lines' ? `<label class="chk"><input type="checkbox" id="f-work" data-k="work" ${cfg.work ? 'checked' : ''}> Квадратчета за смятане под всяка задача</label>` : ''}
+        ${cfg.layout === 'lines' ? `<label class="chk"><input type="checkbox" id="f-work" data-k="work" ${cfg.work ? 'checked' : ''}> Ред за смятане под всяка задача</label>` : ''}
         <label class="chk"><input type="checkbox" id="f-names" data-k="names" ${cfg.names ? 'checked' : ''}> Място за име и дата</label>
         <label class="chk"><input type="checkbox" id="f-check" data-k="check" ${cfg.check ? 'checked' : ''}> Проверка в решенията</label>
         <label class="chk"><input type="checkbox" id="f-trivial" data-k="noTrivial" ${cfg.noTrivial ? 'checked' : ''}> Без лесни случаи (0 и 1)</label>
       </div>
     </div>
-    ${['add', 'sub', 'mul', 'div', 'mix'].map(typeCard).join('')}`;
+    ${TYPES.map(typeCard).join('')}`;
   updateLevelUI();
   updateLevelDesc();
 }
@@ -886,14 +1058,15 @@ function inlineGrid(p, withAns) {
 const usesInline = (p) => (cfg.layout === 'inline' || p.forceInline) && ['add', 'sub', 'mul'].includes(p.type);
 
 function badge(p, i) {
-  return `<span class="badge" style="--bc:${COLORS[p.type]};--bt:${BADGE_TEXT[p.type]}">${i + 1}</span>`;
+  return `<span class="q-num">${i + 1})</span>`;
 }
 
+// лист със задачи на редове: „1) 25 × 63 × 4 = ........ [   ]“ и ред за смятане
 function taskItem(p, i, cols) {
   if (cfg.layout === 'lines') {
-    const work = cfg.work ? `<div class="paper"><div class="blank" style="--n:${Math.min(6, p.grid.rows.length)}"></div></div>` : '';
-    return el(`<div class="item line-item">
-      <div class="line">${badge(p, i)}<span class="lexpr">${esc(symText(p.expr))}</span><span class="leq">=</span><span class="lans"></span></div>${work}
+    return el(`<div class="item q-item">
+      <div class="q-row"><span class="q-ex">${i + 1}) ${esc(symText(p.expr))} =</span><span class="q-lead"></span><span class="q-box"></span></div>
+      ${cfg.work ? '<div class="q-work"></div>' : ''}
     </div>`);
   }
   let inner, w;
@@ -906,19 +1079,29 @@ function taskItem(p, i, cols) {
     inner = gridHTML(p.grid, 'task') + '<div class="blank" style="--n:1"></div>';
   }
   return el(`<div class="item" style="grid-column:span ${spanFor(w, cols)}">
-    <div class="item-top">${badge(p, i)}${p.type === 'mix' ? '<span class="kind">ред на действията</span>' : ''}</div>
+    <div class="item-top">${badge(p, i)}</div>
     <div class="paper">${inner}</div>
   </div>`);
 }
 
+// кратко решение: условието, отговорът вдясно и веригата от равенства отдолу
+function answerShort(p, i) {
+  const chain = p.parts && p.parts.length ? `<div class="s-chain">= ${esc(symText(p.parts.join(' = ')))}</div>` : '';
+  return el(`<div class="item s-item">
+    <div class="s-row"><span class="s-q">${i + 1}) ${esc(symText(p.expr))}</span><span class="s-a">= ${esc(fmtAns(p))}</span></div>
+    ${chain}
+  </div>`);
+}
+
 function answerItem(p, i) {
+  if (cfg.detail !== 'full') return answerShort(p, i);
   const parts = [];
   let w = p.grid.w;
   if (usesInline(p)) { const ig = inlineGrid(p, true); w = Math.max(w, ig.w); parts.push(gridHTML(ig, 'ans')); }
   parts.push(gridHTML(p.grid, 'ans'));
-  const steps = p.steps.map((s) => `<li><b>${esc(symText(s.lead))}:</b> <span class="math">${esc(symText(s.txt))}</span></li>`).join('');
+  const steps = p.steps.map((st) => `<li><b>${esc(symText(st.lead))}:</b> <span class="math">${esc(symText(st.txt))}</span></li>`).join('');
   return el(`<div class="item" style="grid-column:span ${spanFor(w, 2)}">
-    <div class="item-top">${badge(p, i)}<span class="aexpr">${esc(symText(p.expr))}</span><span class="answer">= ${esc(p.answer)}</span></div>
+    <div class="item-top">${badge(p, i)}<span class="aexpr">${esc(symText(p.expr))}</span><span class="answer">= ${esc(fmtAns(p))}</span></div>
     <div class="paper">${parts.join('')}</div>
     <ol class="steps">${steps}</ol>
     ${cfg.check && p.check ? `<div class="check">Проверка: ${esc(symText(p.check))}</div>` : ''}
@@ -927,36 +1110,27 @@ function answerItem(p, i) {
 
 function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; }
 
-function miniBrand() {
-  return `<div class="ph-brand">${sticker('plus', COLORS.add, 20)}${sticker('minus', COLORS.sub, 20)}${sticker('times', COLORS.mul, 20)}${sticker('divide', COLORS.div, 20)}<span>math-camp</span></div>`;
+function pageLogo() {
+  return `<div class="pg-logo" aria-hidden="true">${sticker('plus', COLORS.add, 13)}${sticker('minus', COLORS.sub, 13)}${sticker('times', COLORS.mul, 13)}${sticker('divide', COLORS.div, 13)}<span>math-camp</span></div>`;
 }
 
-function makePage(kind, n, count) {
+function makePage(kind, n) {
   const isTask = kind === 'task';
-  const cols = isTask ? cfg.cols : 2;
-  let head;
-  if (n === 1) {
-    head = `<header class="pg-head">
-      <div class="ph-l">
-        ${miniBrand()}
-        <h1 class="ph-title">${isTask ? esc(cfg.title) : '<em>Решения</em>'}</h1>
-        <div class="ph-meta">${isTask ? `${count} задачи · ${cfg.layout === 'lines' ? 'Пиши стъпките на отделен лист или в квадратчетата.' : 'Смятай в квадратчетата и пиши всяка стъпка.'}` : `${esc(cfg.title)} · Сравни всяка стъпка, не само отговора. Сините цифри са решението, червените са пренесеното и заетото.`}</div>
-      </div>
-      <div class="ph-r">
-        ${isTask && cfg.names ? '<div class="field">Име <span class="fl"></span></div><div class="field">Дата <span class="fl"></span></div>' : ''}
-        <span class="code">Лист ${esc(seed)}</span>
-      </div>
-    </header>`;
-  } else {
-    head = `<header class="pg-head cont"><h1 class="ph-title">${isTask ? esc(cfg.title) : 'Решения'} <span class="muted">· продължение</span></h1><span class="code">Лист ${esc(seed)}</span></header>`;
-  }
-  const page = el(`<article class="page">${head}<div class="pg-body ${isTask && cfg.layout === 'lines' ? 'lines' : ''}" style="--cols:${cols}"></div><footer class="pg-foot"><span>math-camp</span><span class="pn"></span></footer></article>`);
+  const cols = isTask ? cfg.cols : cfg.detail === 'full' ? 2 : 1;
+  const title = isTask ? esc(cfg.title) : 'Решения по стъпки';
+  const cont = n > 1 ? ' <span class="ph-cont">(продължение)</span>' : '';
+  const right = isTask
+    ? (cfg.names && n === 1 ? '<span class="field">Име: <span class="fl"></span></span><span class="field">Дата: <span class="fl short"></span></span>' : `<span class="code">Лист № ${esc(seed)}</span>`)
+    : `<span class="code">Лист № ${esc(seed)}</span>`;
+  const head = `<header class="pg-head"><h1 class="ph-title">${title}${cont}</h1><div class="ph-r">${right}</div></header>`;
+  const bodyCls = isTask ? (cfg.layout === 'lines' ? 'lines' : '') : cfg.detail === 'full' ? '' : 'short';
+  const page = el(`<article class="page">${pageLogo()}${head}<div class="pg-body ${bodyCls}" style="--cols:${cols}"></div><footer class="pg-foot"><span>Лист № ${esc(seed)}${isTask ? '' : ' · решения'}</span><span class="pn"></span></footer></article>`);
   return { el: page, body: $('.pg-body', page) };
 }
 
 function paginate(container, items, kind, count) {
   let n = 1;
-  let page = makePage(kind, n, count);
+  let page = makePage(kind, n);
   container.append(page.el);
   const pages = [page.el];
   for (const it of items) {
@@ -964,13 +1138,13 @@ function paginate(container, items, kind, count) {
     if (page.body.scrollHeight > page.body.clientHeight + 1 && page.body.children.length > 1) {
       it.remove();
       n++;
-      page = makePage(kind, n, count);
+      page = makePage(kind, n);
       container.append(page.el);
       pages.push(page.el);
       page.body.append(it);
     }
   }
-  pages.forEach((p, i) => { $('.pn', p).textContent = `Лист ${seed} · стр. ${i + 1} от ${pages.length}`; });
+  pages.forEach((p, i) => { $('.pn', p).textContent = `стр. ${i + 1} от ${pages.length}`; });
   return pages.length;
 }
 
@@ -1308,7 +1482,7 @@ function applySuggestion(sug) {
   cfg = merge(clone(BASE), last ? last.cfg : {});
   if (sug.kind === 'weak') {
     const weakTypes = new Set(sug.weak.map((w) => SKILLS[w.k].type));
-    for (const t of ['add', 'sub', 'mul', 'div', 'mix']) {
+    for (const t of TYPES) {
       if (weakTypes.has(t)) { cfg[t].on = true; cfg[t].n = Math.max(cfg[t].n, 5); }
       else if (cfg[t].on) cfg[t].n = Math.min(cfg[t].n, 2);
     }
