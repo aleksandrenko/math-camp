@@ -192,12 +192,12 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
 /* task sheet, lines: row 1 = problem + dashed leader + answer box; row 2 = one ruled line of the
    same height for working; then white space separates problems (one line each, never doubled) */
 .pg-body.lines { gap: 0 10mm; }
-.item.q-item { gap: 0; padding-bottom: 3.6mm; }
-.q-row { display: flex; align-items: flex-end; height: 6.8mm; }
+.item.q-item { gap: 0; padding-bottom: 6.6mm; }
+.q-row { display: flex; align-items: flex-end; height: 6.8mm; border-bottom: .3mm dashed #BFC5CE; }
 .q-ex { font: 700 13pt/1 var(--f-body); white-space: nowrap; font-variant-numeric: tabular-nums; padding-bottom: 1.2mm; }
-.q-lead { flex: 1; min-width: 8mm; border-bottom: .3mm dashed #BFC5CE; margin: 0 3mm 1.2mm 2.5mm; }
-.q-box { flex: none; align-self: center; width: 24mm; height: 6.2mm; border: .4mm solid #1d1d1f; border-radius: 1.4mm; }
-.q-work { height: 6.8mm; border-bottom: .3mm dashed #BFC5CE; }
+.q-lead { flex: 1; min-width: 8mm; }
+.q-box { flex: none; align-self: flex-end; margin-bottom: .5mm; width: 24mm; height: 5.8mm; border: .4mm solid #1d1d1f; border-radius: 1.4mm; }
+.q-work { height: 3.8mm; border-bottom: .3mm dashed #BFC5CE; }
 
 /* answer sheet, short: blue problem, bold answer on the right, monospace chain below */
 .pg-body.short { gap: 0; }
