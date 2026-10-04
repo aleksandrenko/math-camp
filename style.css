@@ -178,7 +178,7 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
 .pg-logo { position: absolute; top: 3.5mm; right: 14mm; display: flex; align-items: center; gap: .6mm; color: var(--p-muted); font: 700 2.6mm/1 var(--f-display); letter-spacing: -0.01em; }
 .pg-logo .stk { width: 3.4mm; height: 3.4mm; }
 .pg-logo span { margin-left: 1mm; }
-.pg-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; padding-bottom: 2.4mm; margin-bottom: 1.5mm; border-bottom: .8mm solid #111; }
+.pg-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; padding-bottom: 2.4mm; margin-bottom: 3mm; border-bottom: .8mm solid #111; }
 .ph-title { font: 700 6.2mm/1.15 var(--f-body); letter-spacing: -0.01em; flex: 1 1 auto; min-width: 0; }
 .ph-cont { font-weight: 500; font-size: 4mm; color: var(--p-muted); }
 .ph-r { display: flex; align-items: flex-end; gap: 5mm; flex: none; padding-bottom: .6mm; }
@@ -189,23 +189,23 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
 .pg-body { flex: 1; min-height: 0; overflow: hidden; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 5mm 4mm; align-content: start; }
 .pg-foot { display: flex; justify-content: space-between; padding-top: 1.8mm; font-size: 2.7mm; color: var(--p-muted); border-top: .25mm solid #E3E6EA; margin-top: 2mm; }
 
-/* task sheet, lines: number + expression, dashed leader, answer box, a ruled row for working */
+/* task sheet, lines: row 1 = problem + dashed leader + answer box; row 2 = one ruled line of the
+   same height for working; then white space separates problems (one line each, never doubled) */
 .pg-body.lines { gap: 0 10mm; }
-.q-item { border-bottom: .3mm dashed #C9CED6; padding-top: 1.4mm; }
-.q-item:not(:first-child) { border-top: .3mm dashed #C9CED6; margin-top: .7mm; }
-.q-row { display: flex; align-items: center; min-height: 8.2mm; padding-bottom: .8mm; }
-.q-ex { font: 700 16pt/1.2 var(--f-body); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.q-lead { flex: 1; align-self: flex-end; min-width: 8mm; border-bottom: .3mm dashed #C9CED6; margin: 0 4mm 1.8mm 3mm; }
-.q-box { flex: none; width: 26mm; height: 8mm; border: .4mm solid #1d1d1f; border-radius: 1.6mm; }
-.q-work { height: 4mm; }
+.item.q-item { gap: 0; padding-bottom: 3.6mm; }
+.q-row { display: flex; align-items: flex-end; height: 6.8mm; }
+.q-ex { font: 700 13pt/1 var(--f-body); white-space: nowrap; font-variant-numeric: tabular-nums; padding-bottom: 1.2mm; }
+.q-lead { flex: 1; min-width: 8mm; border-bottom: .3mm dashed #BFC5CE; margin: 0 3mm 1.2mm 2.5mm; }
+.q-box { flex: none; align-self: center; width: 24mm; height: 6.2mm; border: .4mm solid #1d1d1f; border-radius: 1.4mm; }
+.q-work { height: 6.8mm; border-bottom: .3mm dashed #BFC5CE; }
 
 /* answer sheet, short: blue problem, bold answer on the right, monospace chain below */
 .pg-body.short { gap: 0; }
-.s-item { padding: 1.2mm 0 1.1mm; border-bottom: .3mm dashed #C9CED6; break-inside: avoid; }
+.s-item { padding: 1.5mm 0 1.4mm; border-bottom: .3mm dashed #C9CED6; break-inside: avoid; }
 .s-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; }
-.s-q { font: 700 16pt/1.2 var(--f-body); color: #24357A; font-variant-numeric: tabular-nums; }
-.s-a { font: 700 16pt/1.2 var(--f-body); color: #111; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.s-chain { margin-top: .3mm; font: 400 12pt/1.35 "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; color: #555; letter-spacing: .03em; word-spacing: .05em; }
+.s-q { font: 700 13pt/1.25 var(--f-body); color: #24357A; font-variant-numeric: tabular-nums; }
+.s-a { font: 700 13pt/1.25 var(--f-body); color: #111; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.s-chain { margin-top: .4mm; font: 400 10.5pt/1.4 "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace; color: #555; letter-spacing: .03em; word-spacing: .05em; }
 
 /* grid layouts (column / squares) and the detailed answer sheet */
 .item { min-width: 0; display: flex; flex-direction: column; gap: 1.6mm; break-inside: avoid; }
@@ -365,3 +365,5 @@ h1, h2, h3 { text-wrap: balance; margin: 0; }
 .ops.wide { flex-wrap: wrap; }
 .ops.wide span { width: auto; padding: 0 10px; font-weight: 600; font-size: 13px; }
 .fld.kinds { align-items: flex-start; flex-direction: column; }
+
+.pv-sum.warn { color: var(--coral); font-weight: 600; }
