@@ -159,19 +159,6 @@ const BASE = applyLevel({
   mix: { on: true, n: 2, allow: { '+': true, '−': true, '·': true, ':': true } },
 }, 5);
 
-const PRESETS = [
-  { id: 'g1', label: '1 клас', level: 2, patch: { smart: { on: false },
-    add: { on: true, n: 8 }, sub: { on: true, n: 8 }, mul: { on: false }, div: { on: false }, mix: { on: false } } },
-  { id: 'g2', label: '2 клас', level: 3, patch: { smart: { on: true, n: 4 },
-    add: { on: true, n: 4 }, sub: { on: true, n: 4 }, mul: { on: true, n: 4 }, div: { on: true, n: 4 }, mix: { on: false } } },
-  { id: 'g3', label: '3 клас', level: 5, patch: { smart: { on: true, n: 6 },
-    add: { on: true, n: 3 }, sub: { on: true, n: 3 }, mul: { on: true, n: 3 }, div: { on: true, n: 3 }, mix: { on: true, n: 3 } } },
-  { id: 'g4', label: '4 клас', level: 8, patch: { smart: { on: true, n: 8 },
-    add: { on: true, n: 2 }, sub: { on: true, n: 2 }, mul: { on: true, n: 3 }, div: { on: true, n: 3 }, mix: { on: true, n: 2 } } },
-  { id: 'table', label: 'Таблицата за умножение', level: 3, patch: { smart: { on: false },
-    add: { on: false }, sub: { on: false }, div: { on: false }, mix: { on: false }, mul: { on: true, n: 24 } } },
-];
-
 function merge(target, patch) {
   for (const k of Object.keys(patch)) {
     if (patch[k] && typeof patch[k] === 'object' && !Array.isArray(patch[k])) merge(target[k] ??= {}, patch[k]);
@@ -187,7 +174,6 @@ cfg.lines = 30; // листът е винаги 30 реда, като тетра
 let seed = stored.seed || newCode();
 let view = 'both';
 let probs = [];
-let activePreset = stored.preset || null;
 
 // стабилен JSON (сортирани ключове), за да дава един и същ номер един и същ лист
 const stable = (o) => JSON.stringify(o, (k, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((x) => [x, v[x]])) : v));
@@ -878,10 +864,6 @@ function buildConfig() {
       </div>
     </div>
     <div class="panel">
-      <h2>Бърз старт</h2>
-      <div class="presets">${PRESETS.map((p) => `<button type="button" data-preset="${p.id}" aria-pressed="${activePreset === p.id}">${p.label}</button>`).join('')}</div>
-    </div>
-    <div class="panel">
       <h2>Листът</h2>
       <div class="rows">
         <input class="txt" id="f-title" data-k="title" value="${esc(cfg.title)}" aria-label="Заглавие на листа" maxlength="60">
@@ -945,16 +927,10 @@ function setK(path, val) {
 }
 function getK(path) { return path.split('.').reduce((o, k) => o[k], cfg); }
 
-function save() { store.set(CFG_KEY, { ...cfg, seed, preset: activePreset }); }
+function save() { store.set(CFG_KEY, { ...cfg, seed }); }
 
 let timer = 0;
 function schedule() { clearTimeout(timer); timer = setTimeout(() => { save(); render(); }, 160); }
-
-function markCustom() {
-  if (!activePreset) return;
-  activePreset = null;
-  $$('[data-preset]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
-}
 
 function wireConfig() {
   const root = $('#config');
@@ -964,7 +940,6 @@ function wireConfig() {
       applyLevel(cfg, Number(el.value));
       syncTypeInputs();
       updateLevelUI();
-      markCustom();
       schedule();
       return;
     }
@@ -984,7 +959,6 @@ function wireConfig() {
       card.classList.toggle('off', !v);
       $('.stepper', card).hidden = !v;
     }
-    if (k !== 'title') markCustom();
     // ръчна промяна на числата: нивото вече е „ръчно“
     const [t, f] = k.split('.');
     if (LADDER[t] && f in LADDER[t][0]) { cfg.levelCustom = true; updateLevelUI(); }
@@ -997,7 +971,6 @@ function wireConfig() {
       const v = Math.max(1, Math.min(60, getK(k) + Number(step.dataset.d)));
       setK(k, v);
       $(`[data-k="${k}"]`, root).value = v;
-      markCustom();
       schedule();
       return;
     }
@@ -1006,17 +979,6 @@ function wireConfig() {
       const key = seg.dataset.seg;
       cfg[key] = key === 'gap' ? Number(seg.dataset.v) : seg.dataset.v;
       $$(`[data-seg="${key}"]`, root).forEach((b) => b.setAttribute('aria-pressed', String(b === seg)));
-      schedule();
-      return;
-    }
-    const pre = e.target.closest('[data-preset]');
-    if (pre) {
-      const p = PRESETS.find((x) => x.id === pre.dataset.preset);
-      const keep = { title: cfg.title, names: cfg.names, check: cfg.check, noTrivial: cfg.noTrivial, order: cfg.order };
-      cfg = merge(merge(applyLevel(clone(BASE), p.level), p.patch), keep);
-      cfg.focus = [];
-      activePreset = p.id;
-      buildConfig();
       schedule();
       return;
     }
@@ -1349,7 +1311,6 @@ function loadSheet(j, opts = {}) {
   delete cfg.seed; delete cfg.preset;
   if (opts.level) { applyLevel(cfg, opts.level); cfg.focus = []; seed = newCode(); }
   else seed = j.seed;
-  activePreset = null;
   bannerDismissed = !!opts.level;
   buildConfig();
   save();
@@ -1533,7 +1494,6 @@ function applySuggestion(sug) {
     cfg.focus = [];
   }
   seed = newCode();
-  activePreset = null;
   buildConfig();
   save();
   go('gen');
